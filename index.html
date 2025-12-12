@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FACE.LAB // Strategic Battle Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Fonts via Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@300;500;700;900&display=swap');
+        
+        .font-sans { font-family: 'Space Grotesk', sans-serif; }
+        .font-serif { font-family: 'IBM Plex Serif', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .bg-grid-pattern {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        /* Custom Range Slider (WebKit) */
+        input[type=range] {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          height: 16px;
+          width: 16px;
+          border-radius: 50%;
+          background: #3b82f6; /* blue-500 */
+          cursor: pointer;
+          margin-top: -6px;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+          width: 100%;
+          height: 4px;
+          cursor: pointer;
+          background: #334155; /* slate-700 / neutral-800 equivalent for base track */
+          border-radius: 2px;
+        }
+        /* Fallback Styles (Not necessary for exact copy of the provided React component's styles which are Tailwind-based, but good practice) */
+        main.scrollbar-thin::-webkit-scrollbar {
+            width: 8px;
+        }
+        main.scrollbar-thin::-webkit-scrollbar-thumb {
+            background-color: #4b5563; /* neutral-800 */
+            border-radius: 20px;
+        }
+        /* State transition for sidebar (Mimic React component's transition) */
+        .cubic-bezier\(0\.4\,\ 0\,\ 0\.2\,\ 1\) {
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Animation utility (Mimic tailwind-based 'animate-in' without complex animation library) */
+        .fade-in { animation: fade-in 0.5s ease-out; }
+        .slide-in-from-bottom-4 { animation: slide-in-from-bottom-4 0.5s ease-out; }
+        .slide-in-from-top-2 { animation: slide-in-from-top-2 0.2s ease-out; }
+
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slide-in-from-bottom-4 {
+            from { transform: translateY(16px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes slide-in-from-top-2 {
+            from { transform: translateY(-8px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-black text-neutral-200 font-serif selection:bg-blue-500/30 selection:text-white relative">
+
+    <div id="app-container" class="min-h-screen">
+        </div>
+
+    <script>
+        // --- State Management (Equivalent to React useState) ---
+        let activeTab = 'mission';
+        let mobileMenuOpen = false;
+        let toast = null;
+        let checklistState = {
+            '1.1-TargetA': false,
+            '1.1-TargetB': false,
+            '1.1-TargetC': false,
+            // Add more as needed for persistent state, but for a simple demo, these three suffice.
+        };
+
+        // --- Pricing State ---
+        let fellowshipPrice = 3200;
+        const MARKET_RATE = 6000;
+        
+        // Utility for icons
+        const icons = {
+            Globe: 'globe', Cpu: 'cpu', Leaf: 'leaf', ShieldAlert: 'shield-alert', Briefcase: 'briefcase', MessageSquare: 'message-square', 
+            MapPin: 'map-pin', Target: 'target', Zap: 'zap', Layout: 'layout', Menu: 'menu', X: 'x', ChevronRight: 'chevron-right', 
+            Terminal: 'terminal', Palette: 'palette', Network: 'network', BookOpen: 'book-open', ClipboardCheck: 'clipboard-check', 
+            GraduationCap: 'graduation-cap', LayoutDashboard: 'layout-dashboard', Copy: 'copy', CheckCircle2: 'check-circle-2', 
+            Circle: 'circle', Calculator: 'calculator'
+        };
+
+        const getIcon = (name, size, className) => {
+            const iconKey = Object.keys(icons).find(key => key === name);
+            if (!iconKey) return '';
+            // Using Lucide's simple rendering without a complex React component wrapper
+            return `<i data-lucide="${icons[iconKey]}" class="${className}" style="width: ${size}px; height: ${size}px;"></i>`;
+        };
+
+        // --- Utility: Rerender Function (Minimal equivalent to state update) ---
+        const render = () => {
+            const container = document.getElementById('app-container');
+            if (!container) return;
+            container.innerHTML = BattleCard();
+            
+            // Re-initialize Lucide icons after DOM update
+            lucide.createIcons();
+
+            // Setup Event Listeners for new DOM
+            attachEventListeners();
+        };
+
+        // --- Utility: Toast Notification ---
+        const showToast = (message) => {
+            toast = message;
+            render(); // Rerender to show toast
+            setTimeout(() => {
+                toast = null;
+                render(); // Rerender to hide toast
+            }, 2000);
+        };
+
+        // --- Utility: Copy to Clipboard ---
+        const handleCopy = (text) => {
+            navigator.clipboard.writeText(text)
+                .then(() => showToast("SECURE COPY // CLIPBOARD ACTIVE"))
+                .catch(err => console.error('Could not copy text: ', err));
+        };
+        
+        // --- Utility: Calculate Subsidy Percent ---
+        const getSubsidyPercent = (price) => {
+            return Math.round(((MARKET_RATE - price) / MARKET_RATE) * 100);
+        };
+
+        // --- Component Logic: NavItem ---
+        const NavItem = (id, iconName, label) => {
+            const isActive = activeTab === id;
+            const borderClass = isActive ? 'border-blue-500 shadow-[inset_10px_0_20px_-10px_rgba(59,130,246,0.1)]' : 'border-transparent text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300';
+            const bgClass = isActive ? 'bg-neutral-900 text-white' : '';
+            const iconColorClass = isActive ? 'text-blue-500' : 'text-neutral-600 group-hover:text-neutral-400';
+
+            return `
+                <button
+                    data-id="${id}"
+                    class="nav-item group flex items-center w-full px-5 py-3.5 text-xs font-bold uppercase tracking-widest transition-all duration-200 border-l-2 font-sans ${bgClass} ${borderClass}"
+                >
+                    ${getIcon(iconName, 16, `mr-4 transition-colors ${iconColorClass}`)}
+                    ${label}
+                </button>
+            `;
+        };
+        
+        // --- Component Logic: SectionHeader ---
+        const SectionHeader = (title, subtitle, iconName) => `
+            <div class="mb-10 pb-6 border-b border-neutral-800">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="p-2 bg-neutral-900 rounded border border-neutral-800 text-blue-500">
+                        ${iconName ? getIcon(iconName, 20) : ''}
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white uppercase tracking-tighter font-sans">${title}</h2>
+                </div>
+                ${subtitle ? `
+                    <div class="flex items-center gap-2 text-neutral-500 font-mono text-sm ml-1">
+                        ${getIcon('Terminal', 14)}
+                        <p class="uppercase tracking-widest">${subtitle}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        // --- Component Logic: Card ---
+        const Card = (title, badge, children, borderColor = "border-neutral-800") => `
+            <div class="bg-neutral-900/40 rounded-sm p-6 md:p-8 border ${borderColor} mb-6 transition-all duration-300 hover:bg-neutral-900/60">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-start mb-6 gap-2">
+                    <h3 class="text-xl font-bold text-white tracking-tight font-sans">${title}</h3>
+                    ${badge ? `
+                        <span class="self-start px-3 py-1 bg-neutral-950 border border-neutral-800 text-[10px] text-neutral-400 uppercase tracking-[0.2em] font-bold rounded-full font-mono">
+                            ${badge}
+                        </span>
+                    ` : ''}
+                </div>
+                <div class="text-neutral-400 space-y-4 leading-relaxed font-light font-serif">
+                    ${children}
+                </div>
+            </div>
+        `;
+        
+        // --- Component Logic: ScriptBox ---
+        const ScriptBox = (title, children, type = "neutral", copyText) => {
+            let accentColor = "border-neutral-700";
+            let titleColor = "text-neutral-500";
+            let bgGradient = "from-neutral-900 to-neutral-950";
+
+            if (type === "do") {
+                accentColor = "border-emerald-600";
+                titleColor = "text-emerald-500";
+                bgGradient = "from-emerald-950/30 to-neutral-950";
+            } else if (type === "dont") {
+                accentColor = "border-rose-600";
+                titleColor = "text-rose-500";
+                bgGradient = "from-rose-950/30 to-neutral-950";
+            }
+
+            const textToCopy = copyText || (typeof children === 'string' ? children : '');
+            
+            let hrClass = type === 'neutral' ? 'bg-neutral-800' : type === 'do' ? 'bg-emerald-900' : 'bg-rose-900';
+
+            return `
+                <div class="relative overflow-hidden border-l-2 ${accentColor} bg-gradient-to-r ${bgGradient} p-5 my-6 rounded-r-sm group">
+                    <div class="flex justify-between items-start">
+                        ${title ? `
+                            <div class="flex items-center gap-2 mb-3 w-full">
+                                <span class="text-[10px] font-bold uppercase tracking-widest font-mono ${titleColor}">${title}</span>
+                                <div class="h-px flex-1 ${hrClass}"></div>
+                            </div>
+                        ` : ''}
+                        ${textToCopy ? `
+                            <button 
+                                class="copy-button ml-4 text-neutral-500 hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100"
+                                title="Copy to Clipboard"
+                                data-copy-text="${textToCopy.replace(/"/g, '&quot;')}"
+                            >
+                                ${getIcon('Copy', 14)}
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div class="font-serif text-lg md:text-xl text-neutral-300 italic leading-relaxed pl-2">
+                        "${children.replace(/&quot;/g, '"')}"
+                    </div>
+                </div>
+            `;
+        };
+        
+        // --- Component Logic: DataCell ---
+        const DataCell = (label, value, subtext, highlight = false) => `
+            <div class="p-4 border border-neutral-800 bg-neutral-900/20 ${highlight ? 'border-l-blue-500 border-l-2' : ''}">
+                <div class="text-[10px] uppercase tracking-widest text-neutral-500 mb-1 font-mono">${label}</div>
+                <div class="text-sm font-bold text-white font-sans">${value}</div>
+                ${subtext ? `<div class="text-xs text-neutral-600 mt-1 font-mono">${subtext}</div>` : ''}
+            </div>
+        `;
+        
+        // --- Component Logic: ChecklistItem ---
+        const ChecklistItem = (text, subtext, id) => {
+            const checked = checklistState[id] || false;
+            const checkedClass = checked ? 'bg-emerald-900/10 border-emerald-900/30' : 'hover:bg-neutral-800/50';
+            const iconColor = checked ? 'text-emerald-500' : 'text-neutral-600';
+            const textColor = checked ? 'text-emerald-400 line-through decoration-emerald-900' : 'text-neutral-300';
+            const iconHtml = checked ? getIcon('CheckCircle2', 18) : getIcon('Circle', 18);
+
+            return `
+                <div 
+                    class="checklist-item flex items-start gap-4 p-3 border border-transparent rounded cursor-pointer transition-all duration-200 ${checkedClass}"
+                    data-item-id="${id}"
+                >
+                    <div class="mt-1 ${iconColor}">
+                        ${iconHtml}
+                    </div>
+                    <div>
+                        <div class="text-sm font-sans ${textColor}">
+                            ${text}
+                        </div>
+                        ${subtext ? `<div class="text-xs text-neutral-500 font-serif mt-1">${subtext}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        };
+
+
+        // --- Main Component Structure (BattleCard) ---
+        const BattleCard = () => {
+            const subsidyPercent = getSubsidyPercent(fellowshipPrice);
+            const isMobile = window.innerWidth < 1024;
+            
+            // Sidebar menu content (same for mobile/desktop)
+            const sidebarContent = `
+                <div class="p-8 hidden lg:block border-b border-neutral-900">
+                    <h1 class="text-2xl font-bold tracking-tighter text-white leading-none mb-2 font-sans">
+                        FACE<br/>
+                        <span class="text-blue-600">FUTURE LAB</span>
+                    </h1>
+                    <div class="flex items-center gap-2 text-[10px] text-neutral-600 uppercase tracking-widest font-mono">
+                        PLAYBOOK // 2026 CYCLE
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto py-6 space-y-8 scrollbar-hide">
+                    <div>
+                        <div class="px-5 text-[10px] font-bold text-neutral-700 uppercase tracking-[0.2em] mb-3 font-sans">1. Strategy</div>
+                        ${NavItem('mission', 'Layout', 'Mission Brief')}
+                        ${NavItem('methodology', 'GraduationCap', 'The Science')}
+                        ${NavItem('checklist', 'LayoutDashboard', 'SAP Dashboard')}
+                    </div>
+                    
+                    <div>
+                        <div class="px-5 text-[10px] font-bold text-neutral-700 uppercase tracking-[0.2em] mb-3 font-sans">2. Targets</div>
+                        ${NavItem('bio', 'Leaf', 'Bio: MCDS / Palmer')}
+                        ${NavItem('innovation', 'Zap', 'Tech: Cushman / NSU')}
+                        ${NavItem('global', 'Globe', 'Biz: Gulliver Prep')}
+                    </div>
+                    
+                    <div>
+                        <div class="px-5 text-[10px] font-bold text-neutral-700 uppercase tracking-[0.2em] mb-3 font-sans">3. Operations</div>
+                        ${NavItem('logistics', 'MapPin', 'Logistics & Risk')}
+                        ${NavItem('scripts', 'MessageSquare', 'Scripts & Pitch')}
+                        ${NavItem('objections', 'ShieldAlert', 'Counter-Intel')}
+                    </div>
+
+                    <div>
+                        <div class="px-5 text-[10px] font-bold text-neutral-700 uppercase tracking-[0.2em] mb-3 font-sans">4. Product Data</div>
+                        ${NavItem('tracks', 'Briefcase', 'Module Tracks')}
+                        ${NavItem('glossary', 'BookOpen', 'Tech Appendix')}
+                    </div>
+                </div>
+                
+                <div class="p-6 border-t border-neutral-900">
+                    <div class="text-[10px] text-neutral-700 text-center font-mono">
+                        SECURE CONNECTION // ENCRYPTED
+                    </div>
+                </div>
+            `;
+            
+            // Content for the main area based on active tab
+            let mainContent = '';
+            
+            if (activeTab === 'mission') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Master Briefing", "Mission: The 2026 Future Systems Fellowship", 'Target')}
+                        
+                        <div class="grid md:grid-cols-2 gap-6 mb-12">
+                            <div class="bg-neutral-900 border-l-4 border-blue-600 p-8 rounded-sm">
+                                <h3 class="text-blue-500 font-bold uppercase tracking-widest text-xs mb-4 font-mono">Primary Objective</h3>
+                                <p class="text-2xl font-light text-white leading-tight font-serif">
+                                    Secure "Nominating Partner" status with South Florida’s <span class="font-bold text-white">Challenger Elite</span> schools.
+                                </p>
+                            </div>
+                            <div class="p-8 border border-neutral-800 rounded-sm bg-neutral-900/20">
+                                <h3 class="text-neutral-500 font-bold uppercase tracking-widest text-xs mb-4 font-mono">Operational Identity</h3>
+                                <p class="text-neutral-400 text-sm leading-relaxed mb-4">
+                                    We function as the backend logistics OS for academic partners, replacing the "tourism model" with direct industrial access corridors. We execute the Small Cycle across three vectors:
+                                </p>
+                                <div class="space-y-2 text-sm font-mono">
+                                    <div class="flex items-center gap-3 text-neutral-300">
+                                        ${getIcon('MapPin', 14, "text-emerald-500")}
+                                        <span><strong class="text-white">LAB:</strong> Technical System Auditing (Research).</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-neutral-300">
+                                        ${getIcon('Palette', 14, "text-amber-500")}
+                                        <span><strong class="text-white">STUDIO:</strong> Performance Logistics.</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-neutral-300">
+                                        ${getIcon('Network', 14, "text-blue-500")}
+                                        <span><strong class="text-white">NODE:</strong> Leadership Signal Exchange.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-12">
+                            ${Card("Program Context: The Jiangsu Engine", "The Arena", `
+                                <p class="text-lg text-white font-medium mb-2 font-sans">Not just a destination. An economic operating system.</p>
+                                <p class="text-sm text-neutral-400 leading-relaxed">
+                                    Jiangsu Province is the engine room of the "China Speed" economic miracle. Home to Suzhou's high-tech industrial parks and Nanjing's agricultural innovation, it offers the highest density of WEF Lighthouse Factories. It creates a unique dual-curriculum where students step between ancient cultural roots and hyper-modern industrial futures in the same day.
+                                </p>
+                            `)}
+                        </div>
+
+                        <div class="space-y-2">
+                            ${Card("The Strategic Pivot", "Approach", `
+                                <div class="grid md:grid-cols-2 gap-8">
+                                    <div>
+                                        <div class="text-xs uppercase tracking-widest text-neutral-500 mb-2 font-mono">The Old Model</div>
+                                        <h4 class="text-xl font-bold text-neutral-600 line-through decoration-rose-500/50 mb-2 font-sans">Educational Tourism</h4>
+                                        <p class="text-sm">Vacation, sightseeing, commodity travel. High liability for schools.</p>
+                                    </div>
+                                    <div>
+                                        <div class="text-xs uppercase tracking-widest text-blue-500 mb-2 font-mono">The New Model</div>
+                                        <h4 class="text-xl font-bold text-white mb-2 font-sans">The "Scale-Up" Fellowship</h4>
+                                        <p class="text-sm">Taking classroom theory (the "Sandbox") and stress-testing it in the real-world supply chain (the "Factory"). Accessing restricted R&D labs and factories normally closed to the public.</p>
+                                    </div>
+                                </div>
+                            `)}
+
+                            ${Card("The Narrative Logic", "Why Us", `
+                                <div class="space-y-6">
+                                    <div class="flex gap-4">
+                                        <div class="min-w-[4px] bg-neutral-800"></div>
+                                        <div>
+                                            <h4 class="font-bold text-white mb-1 font-sans">Q: Who is the target?</h4>
+                                            <p class="text-sm">"Challenger Elites" (MCDS, Gulliver, Cushman). Liberal/international schools desperate to differentiate from the "Big 4" (Heritage/Ransom).</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-4">
+                                        <div class="min-w-[4px] bg-neutral-800"></div>
+                                        <div>
+                                            <h4 class="font-bold text-white mb-1 font-sans">Q: What is our Brand Voice?</h4>
+                                            <p class="text-sm">The "Quiet Fixer." We are not "Used Car Salesmen." We are the "System." We remove friction. We have the access, the funding, and the paperwork.</p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-neutral-800">
+                                        <div class="text-xs font-mono text-neutral-500 mb-2">BRAND VOICE PROTOCOL</div>
+                                        <p class="text-lg font-serif italic text-neutral-300">"The West innovates; the East scales. Your students need both."</p>
+                                    </div>
+                                </div>
+                            `)}
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'logistics') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Operations", "Logistics, Pricing & The 'Elephant'", 'MapPin')}
+
+                        <div class="grid md:grid-cols-4 gap-4 mb-8">
+                            ${DataCell("Duration", "10 Days", "Immersion", true)}
+                            ${DataCell("Region", "Jiangsu", "Suzhou / Nanjing / Wuxi")}
+                            ${DataCell("Staffing", "1:5 Ratio", "Chaperone Protocol")}
+                            ${DataCell("Price", `$${fellowshipPrice.toLocaleString()}`, `~${subsidyPercent}% Subsidized`)}
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                            ${Card("Calendar Intel", "Scheduling", `
+                                <div class="space-y-4">
+                                    <p class="text-sm"><span class="text-emerald-500 font-bold font-mono">Spring Break:</span> March 14–22, 2026. For schools with dedicated experiential weeks.</p>
+                                    <p class="text-sm"><span class="text-amber-500 font-bold font-mono">Early Summer:</span> May 30–June 10, 2026. The "Capstone" window immediately following finals.</p>
+                                    <div class="p-3 bg-rose-950/20 border border-rose-900/30 rounded text-xs text-rose-200/80 mt-2 font-mono">
+                                        <strong class="block uppercase mb-1 text-rose-500">Warning</strong>
+                                        Elite US schools protect seat time aggressively. Do not propose November dates for AP/IB students.
+                                    </div>
+                                </div>
+                            `)}
+                            ${Card("Pricing Simulator", "Grant Allocation", `
+                                <div class="space-y-6">
+                                    <div class="flex justify-between items-end border-b border-neutral-800 pb-2">
+                                        <span class="text-xs uppercase tracking-widest text-neutral-500 font-mono">Market Rate (Europe)</span>
+                                        <span class="text-neutral-500 font-mono decoration-rose-500 line-through">$6,000</span>
+                                    </div>
+                                    
+                                    <div class="space-y-4">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-xs uppercase tracking-widest text-blue-500 font-bold font-mono">Fellowship Rate</span>
+                                            <div class="text-right">
+                                                <span id="price-display" class="text-white font-bold font-mono text-2xl block">$${fellowshipPrice.toLocaleString()}</span>
+                                                <span id="subsidy-display" class="text-xs text-emerald-400 font-mono">~${subsidyPercent}% Subsidized</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="pt-2">
+                                            <input 
+                                                type="range" 
+                                                min="2500" 
+                                                max="4500" 
+                                                step="50" 
+                                                value="${fellowshipPrice}"
+                                                id="price-slider"
+                                                class="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                            <div class="flex justify-between text-[10px] text-neutral-600 font-mono mt-1">
+                                                <span>$2,500</span>
+                                                <span>$4,500</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-neutral-900/50 p-3 rounded border border-neutral-800">
+                                        <p class="text-xs text-neutral-400 font-serif italic">
+                                            "<strong class="text-white not-italic">Script:</strong> Because of the JESIE grant, we are offering this at <span id="subsidy-script-display">~${subsidyPercent}%</span> below market rate. This makes elite global travel accessible to a wider range of your families (DEI win)."
+                                        </p>
+                                    </div>
+                                </div>
+                            `)}
+                        </div>
+
+                        <div class="bg-neutral-900 border border-neutral-800 p-8 mb-8">
+                            <h3 class="text-xl font-bold text-white uppercase tracking-tight mb-6 font-sans">Handling The "State Actor" (JESIE)</h3>
+                            
+                            <div class="grid md:grid-cols-2 gap-8">
+                                <div>
+                                    <h4 class="text-white font-bold text-sm mb-2 font-sans">Concept: "The Badge Issuer"</h4>
+                                    <p class="text-neutral-500 text-xs mb-4 leading-relaxed font-serif">Explanation for government involvement without triggering political anxiety.</p>
+                                    ${ScriptBox("The Script", "Think of JESIE like the British Council or Fulbright. I need them for one reason: Access. I cannot get your students onto the Tesla floor without a government badge. JESIE is the 'Badge Issuer.' They open the gate; my US team runs the lab.", 'neutral', "Think of JESIE like the British Council or Fulbright. I need them for one reason: Access. I cannot get your students onto the Tesla floor without a government badge. JESIE is the 'Badge Issuer.' They open the gate; my US team runs the lab.")}
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-sm mb-2 font-sans">Concept: "The US Buffer"</h4>
+                                    <p class="text-neutral-500 text-xs mb-4 leading-relaxed font-serif">Legal structure explanation.</p>
+                                    ${ScriptBox("The Script", "You are contracting with FACE (Florida), not China. We provide the curriculum and indemnification. The local entity is simply the venue host.", 'neutral', "You are contracting with FACE (Florida), not China. We provide the curriculum and indemnification. The local entity is simply the venue host.")}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'bio') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Bio-Systems & Ethics", "Target: MCDS & Palmer Trinity", 'Leaf')}
+                        
+                        <div class="mb-8 p-4 border-l-2 border-emerald-600 bg-emerald-950/10">
+                            <div class="text-[10px] uppercase tracking-widest text-emerald-500 font-bold mb-1 font-mono">Target Psychographic</div>
+                            <div class="text-emerald-100/80 text-sm font-serif">The "Eco-Conscious" & "Social Justice" Liberal Demographic.</div>
+                        </div>
+
+                        ${Card("Miami Country Day (MCDS)", "Profile Hook", `
+                            <div class="grid md:grid-cols-[140px_1fr] gap-6 text-sm">
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Profile</div>
+                                <div class="text-neutral-300">Very wealthy, cosmopolitan parent base. Heavy emphasis on their "Gateway" program (Experiential Learning). They pride themselves on "creating global citizens," not just students.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">The Gap</div>
+                                <div class="text-neutral-300"><strong class="text-white">"Euro-Centricity."</strong> Their "Global" program is heavily weighted toward Western culture (Vienna/France) or "Service" in developing nations. They miss the "Future Economy" of Asia.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Asset</div>
+                                <div class="text-emerald-400 font-mono">Envision Group (Net Zero OS) & Vertical Farming.</div>
+                            </div>
+                            
+                            ${ScriptBox("The Hook", "Your 'Gateway' program is the gold standard for cultural immersion. But a modern Global Citizen must understand the Green Economy. We balance your portfolio. Don't just show them history in Europe; show them the Net Zero Operating System in Wuxi that manages the energy grid for global cities. It proves your students are ready for the future of the planet, not just its past.", 'do', "Your 'Gateway' program is the gold standard for cultural immersion. But a modern Global Citizen must understand the Green Economy. We balance your portfolio. Don't just show them history in Europe; show them the Net Zero Operating System in Wuxi that manages the energy grid for global cities. It proves your students are ready for the future of the planet, not just its past.")}
+                        `, "border-neutral-800 hover:border-emerald-900")}
+
+                        ${Card("Palmer Trinity (Palmetto Bay)", "Profile Hook", `
+                            <div class="grid md:grid-cols-[140px_1fr] gap-6 text-sm">
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Profile</div>
+                                <div class="text-neutral-300">Episcopal roots but extremely progressive/inclusive. Dedicated "Center for Global Education." Heavy focus on Environmental Stewardship.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">The Gap</div>
+                                <div class="text-neutral-300"><strong class="text-white">"The Nature Trap."</strong> They focus on preserving nature (Mangroves/Everglades). They lack exposure to industrial sustainability solutions.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Asset</div>
+                                <div class="text-emerald-400 font-mono">Bosideng Smart Logistics (Ethical Supply Chain).</div>
+                            </div>
+                            
+                            ${ScriptBox("The Hook", "You lead the state in Environmental Stewardship. But climate change is a supply chain problem. We take your sustainability curriculum out of the mangroves and into the Smart Factory. Students analyze how automation reduces waste and improves labor conditions (Goal 8: Decent Work). It converts their passion for justice into economic literacy.", 'do', "You lead the state in Environmental Stewardship. But climate change is a supply chain problem. We take your sustainability curriculum out of the mangroves and into the Smart Factory. Students analyze how automation reduces waste and improves labor conditions (Goal 8: Decent Work). It converts their passion for justice into economic literacy.")}
+                        `, "border-neutral-800 hover:border-emerald-900")}
+                    </div>
+                `;
+            } else if (activeTab === 'innovation') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Innovation & Scale", "Target: Cushman & NSU", 'Zap')}
+                        
+                        <div class="mb-8 p-4 border-l-2 border-amber-600 bg-amber-950/10">
+                            <div class="text-[10px] uppercase tracking-widest text-amber-500 font-bold mb-1 font-mono">Target Psychographic</div>
+                            <div class="text-amber-100/80 text-sm font-serif">The "Maker Movement" & "Entrepreneurial" Demographic.</div>
+                        </div>
+
+                        ${Card("The Cushman School", "Profile Hook", `
+                            <div class="grid md:grid-cols-[140px_1fr] gap-6 text-sm">
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Profile</div>
+                                <div class="text-neutral-300">"Society for the Arts and Innovation." Agile, creative, "boutique" elite. Parents are entrepreneurs and creatives who value "Design Thinking."</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">The Gap</div>
+                                <div class="text-neutral-300"><strong class="text-white">"The Garage Ceiling."</strong> Their curriculum is amazing at Prototyping (Design Thinking), but students never see Mass Production.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Asset</div>
+                                <div class="text-amber-500 font-mono">Haier Smart Institute (WEF Lighthouse Factory) & Ecovacs Robotics.</div>
+                            </div>
+                            
+                            ${ScriptBox("The Hook", "Cushman is the 'Design Thinking' leader. But a design is only a hobby until it scales. We are the 'Scale-Up Module' for your innovation track. We take students from the Cushman 'Garage' to the Haier 'Lighthouse Factory' to see how IoT sensors customize appliances for millions of users. It completes the loop of their entrepreneurial education.", 'do', "Cushman is the 'Design Thinking' leader. But a design is only a hobby until it scales. We are the 'Scale-Up Module' for your innovation track. We take students from the Cushman 'Garage' to the Haier 'Lighthouse Factory' to see how IoT sensors customize appliances for millions of users. It completes the loop of their entrepreneurial education.")}
+                        `, "border-neutral-800 hover:border-amber-900")}
+
+                        ${Card("NSU University School (The 'U School')", "Profile Hook", `
+                            <div class="grid md:grid-cols-[140px_1fr] gap-6 text-sm">
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Profile</div>
+                                <div class="text-neutral-300">Attached to Nova Southeastern University. Focus on "College Access" and research. Liberal/Academic parent base.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">The Gap</div>
+                                <div class="text-neutral-300"><strong class="text-white">"Academic vs. Applied."</strong> They have great access to professors (Theory), but less access to global industry leaders (Application).</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Asset</div>
+                                <div class="text-amber-500 font-mono">Estun Automation (Heavy Robotics).</div>
+                            </div>
+                            
+                            ${ScriptBox("The Hook", "You have the 'University' part covered perfectly. We provide the 'Industry' part. Students take their coding skills from the classroom and see them applied on the heavy integration floor at Estun. It validates that their 'U School' education works in the global market.", 'do', "You have the 'University' part covered perfectly. We provide the 'Industry' part. Students take their coding skills from the classroom and see them applied on the heavy integration floor at Estun. It validates that their 'U School' education works in the global market.")}
+                        `, "border-neutral-800 hover:border-amber-900")}
+                    </div>
+                `;
+            } else if (activeTab === 'global') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Global Diplomacy", "Target: Gulliver Prep", 'Globe')}
+                        
+                        <div class="mb-8 p-4 border-l-2 border-blue-600 bg-blue-950/10">
+                            <div class="text-[10px] uppercase tracking-widest text-blue-500 font-bold mb-1 font-mono">Target Psychographic</div>
+                            <div class="text-blue-100/80 text-sm font-serif">The "International Elite" demographic (Expats/Latin American wealth).</div>
+                        </div>
+
+                        ${Card("Gulliver Prep (IB World School)", "Profile Hook", `
+                            <div class="grid md:grid-cols-[140px_1fr] gap-6 text-sm">
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Profile</div>
+                                <div class="text-neutral-300">Massive, diverse international parent base. Strong IB (International Baccalaureate) curriculum which requires global perspectives.</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">The Gap</div>
+                                <div class="text-neutral-300"><strong class="text-white">"Soft Diplomacy."</strong> IB trips often focus on culture/language. Gulliver parents (many international business owners) want "Hard Skills."</div>
+                                
+                                <div class="text-xs font-bold text-neutral-500 uppercase tracking-widest py-1 font-mono">Asset</div>
+                                <div class="text-blue-400 font-mono">JD Logistics "Asia No. 1" (AI Warehousing).</div>
+                            </div>
+                            
+                            ${ScriptBox("The Hook", "Gulliver parents understand the global economy better than anyone. They know China isn't just a political headline; it's a supply chain reality. We offer an 'Economic Diplomacy' track. Students analyze the AI algorithms at JD Logistics. It satisfies the IB requirement for global interaction while giving them the hard-tech edge their parents value.", 'do', "Gulliver parents understand the global economy better than anyone. They know China isn't just a political headline; it's a supply chain reality. We offer an 'Economic Diplomacy' track. Students analyze the AI algorithms at JD Logistics. It satisfies the IB requirement for global interaction while giving them the hard-tech edge their parents value.")}
+                        `, "border-neutral-800 hover:border-blue-900")}
+                    </div>
+                `;
+            } else if (activeTab === 'tracks') {
+                // Simplified content for Tracks (Module Tracks)
+                const tableRow = (unit, asset, location, assetDetail, statusColor, status, statusDetail, mappingStrong, mappingDetail) => `
+                    <tr>
+                        <td class="p-4 text-white font-medium align-top font-sans">${unit}</td>
+                        <td class="p-4 text-neutral-400 align-top">
+                            <strong class="text-white font-sans">${asset}</strong>
+                            <span class="block text-[10px] text-neutral-500 font-mono mt-1">${location}</span>
+                            <span class="block text-[10px] text-neutral-600 pt-1 leading-relaxed font-serif">${assetDetail}</span>
+                        </td>
+                        <td class="p-4 align-top">
+                            <span class="${statusColor} font-bold text-xs font-mono">${status}</span>
+                            <span class="block text-[10px] text-neutral-500 pt-1 font-mono">${statusDetail}</span>
+                        </td>
+                        <td class="p-4 text-neutral-300 text-xs align-top font-mono">
+                            <strong class="block text-white mb-1">${mappingStrong}</strong>
+                            ${mappingDetail}
+                        </td>
+                    </tr>
+                `;
+
+                const tableTemplate = (title, iconName, accentColor, accentClass, rows) => `
+                    <div class="border border-neutral-800 rounded-sm overflow-hidden">
+                        <div class="bg-${accentClass}/20 p-4 border-b border-${accentClass}-900/30 flex justify-between items-center">
+                            <h3 class="font-bold text-${accentClass}-400 flex items-center gap-3 tracking-wide font-sans">${getIcon(iconName, 18)} ${title}</h3>
+                            <span class="text-[10px] uppercase tracking-widest text-neutral-500 font-mono">${accentColor}</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-black text-neutral-500 uppercase text-[10px] tracking-widest font-mono">
+                                    <tr>
+                                        <th class="p-4 font-normal">Unit</th>
+                                        <th class="p-4 font-normal">Lab Asset (Location)</th>
+                                        <th class="p-4 font-normal">Status</th>
+                                        <th class="p-4 font-normal">Curriculum Mapping</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-neutral-800 bg-neutral-900/20">
+                                    ${rows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                const trackARows = [
+                    tableRow("Food Security", "Nanjing Ag. Univ. Plant Factory", "NANJING", "National Key Laboratory for crop genetics and automated urban farming systems.", "text-emerald-500", "CORE", "Education Dept Direct Channel", "AP Env. Science", "Unit 5: Sustainable Ag"),
+                    tableRow("Biotech Scale", "WuXi Biologics", "WUXI", "Global CDMO open-access technology platform for biologics discovery.", "text-emerald-500", "CORE", "Govt Coordinated Access", "IB Biology", "Option B: Biotechnology"),
+                    tableRow("Genetics", "Cold Spring Harbor Asia", "SUZHOU", "Prestigious molecular biology meeting hub and research campus.", "text-amber-500", "CAUTION", "Independent Ops - Schedule Varies", "AP Biology", "Unit 6: Gene Expression"),
+                    tableRow("Microbiology", "Hengshun Vinegar Culture Museum", "ZHENJIANG", "Industrial fermentation museum demonstrating traditional vs modern biotech.", "text-blue-500", "CULTURE", "Supplement Only", "General Science", "Fermentation Processes"),
+                ].join('');
+
+                const trackBRows = [
+                    tableRow("Automation", "Estun Automation (Test Center)", "NANJING", "China's leading robotics brand specializing in heavy industrial servo systems.", "text-emerald-500", "CORE", "Education Dept Priority", "PLTW Engineering", "CIM (Robotics)"),
+                    tableRow("IIoT", "Haier Smart Institute", "NANJING", "WEF Lighthouse Factory utilizing 5G+IIoT for mass customization.", "text-emerald-500", "CORE", "Education Dept Priority", "IB Design Tech", "Topic 10: Digital Mfg"),
+                    tableRow("Product Design", "Ecovacs Robotics", "SUZHOU", "Service robotics leader (vacuums) demonstrating consumer product R&D.", "text-emerald-500", "CORE", "100% Access Rate", "Innovation Capstone", "Prototyping"),
+                    tableRow("Safety Eng.", "Goodbaby R&D Center", "KUNSHAN (SUZHOU)", "Global child safety crash-test and endurance testing facility.", "text-amber-500", "CAUTION", "Narrow Scope", "Physics", "Mechanics/Safety"),
+                ].join('');
+
+                const trackCRows = [
+                    tableRow("Hyper-Logistics", 'JD Logistics "Asia No. 1"', "KUNSHAN (SUZHOU)", "Fully automated \"Dark Warehouse\" utilizing AGVs and AI sorting.", "text-emerald-500", "CORE", "The \"Shock\" Option", "Business Mgmt", "Operations Mgmt"),
+                    tableRow("Agile Supply", "Bosideng Smart Logistics", "CHANGSHU (SUZHOU)", `<span class="text-emerald-400 font-bold">Ethical Supply Chain:</span> Smart apparel manufacturing base with real-time inventory tracking.`, "text-emerald-500", "CORE", "Digital Transformation", "NAF Finance", "Global Supply Chain"),
+                    tableRow("Net Zero", "Envision Group Global HQ", "JIANGYIN (WUXI)", "Net Zero Technology partner providing AIoT energy management operating systems.", "text-emerald-500", "CORE", "Global Leadership", "AP Macroeconomics", "Unit 6: Trade"),
+                    tableRow("R&D Strategy", "Bosch Suzhou Innovation Center", "SUZHOU", "MNC innovation hub focusing on automotive software and connected mobility.", "text-emerald-500", "CORE", "Global Node", "IB Global Politics", "Globalization"),
+                    tableRow("Manufacturing", "Starbucks Innovation Park", "KUNSHAN (SUZHOU)", "Fully integrated \"Bean-to-Cup\" sustainable roasting facility.", "text-amber-500", "BACKUP", "Standardized Exp.", "Business", "Globalization"),
+                    tableRow("Textile Supply", "Sunshine Group", "JIANGYIN (WUXI)", "Large scale worsted wool textile vertical integrated mill.", "text-amber-500", "CAUTION", "Overlaps Bosideng", "Fashion/Business", "Supply Chain"),
+                ].join('');
+                
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Module Tracks", "Asset Inventory & Curriculum Mapping", 'Briefcase')}
+                        
+                        <div class="space-y-12">
+                            ${tableTemplate("TRACK A: THE BIO-SYSTEMS MODULE", "Leaf", "Biology / Pre-Med", "emerald-950", trackARows)}
+                            ${tableTemplate("TRACK B: THE INTEGRATED ENGINEERING MODULE", "Cpu", "Robotics / Design", "amber-950", trackBRows)}
+                            ${tableTemplate("TRACK C: THE GLOBAL SYSTEMS MODULE", "Globe", "Business / Macro", "blue-950", trackCRows)}
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'scripts') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("The Showrunner Script", "Archetype: Peer-to-Peer / Equal Power", 'MessageSquare')}
+
+                        <div class="grid md:grid-cols-2 gap-6 mb-12">
+                            <div class="bg-neutral-900/50 p-6 border-l-2 border-purple-500">
+                                <h3 class="font-bold text-purple-400 mb-2 uppercase tracking-widest text-xs font-mono">Technique</h3>
+                                <p class="text-xl font-light text-white font-serif">The Knowledge Duet</p>
+                                <p class="text-sm text-neutral-400 mt-2 font-serif">Finish their sentences using shared industry truths. Use "We" and "Us".</p>
+                            </div>
+                            <div class="bg-neutral-900/50 p-6 border-l-2 border-neutral-600">
+                                <h3 class="font-bold text-neutral-400 mb-2 uppercase tracking-widest text-xs font-mono">The Pre-Pitch</h3>
+                                <p class="text-xl font-light text-white font-serif">The "Sorting Hat"</p>
+                                <p class="text-sm text-neutral-400 mt-2 font-serif">You are categorized in 150ms. Don't be a "Charity Case" (Needy). Be a "Showrunner" (Busy).</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-8">
+                            <div>
+                                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 font-sans">
+                                    <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-mono">1</span>
+                                    The Opener: Establishing the Duet
+                                </h3>
+                                ${ScriptBox("The Rookie Mistake", "We have a great trip to China, let me tell you about it.", "dont")}
+                                ${ScriptBox("The Showrunner Entry", "Dr. [Name], we both know the standard 'European History Tour' doesn't pop on a Stanford application anymore. It’s become a commodity. We are building a 'Fellowship' model to solve that differentiation gap, and looking at your STEM track, we think [School Name] is the right fit for the pilot seats.", 'do', "Dr. [Name], we both know the standard 'European History Tour' doesn't pop on a Stanford application anymore. It’s become a commodity. We are building a 'Fellowship' model to solve that differentiation gap, and looking at your STEM track, we think [School Name] is the right fit for the pilot seats.")}
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2 font-sans">
+                                    <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-mono">2</span>
+                                    The Collaboration (The Golden Rule)
+                                </h3>
+                                ${ScriptBox("Design The Cohort", "We have 20 funded seats from the Jiangsu Education Services (JESIE). They cover the ground costs. My team handles the curriculum. Here is where I need your help: We are debating whether to frame this strictly for your Robotics students, or if we should open it to the IB Business track. Knowing your student body, which cohort needs the resume boost more?", 'neutral', "We have 20 funded seats from the Jiangsu Education Services (JESIE). They cover the ground costs. My team handles the curriculum. Here is where I need your help: We are debating whether to frame this strictly for your Robotics students, or if we should open it to the IB Business track. Knowing your student body, which cohort needs the resume boost more?")}
+                                <p class="text-xs text-neutral-500 mt-2 italic pl-6 font-serif">*Psychology: They are no longer judging the trip; they are now designing it with you.*</p>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-3 gap-4 pt-8 border-t border-neutral-800">
+                                <div class="p-4 bg-neutral-900 border border-neutral-800">
+                                    <span class="text-[10px] font-bold text-neutral-500 uppercase font-mono">To Head of School</span>
+                                    <p class="mt-2 text-sm text-neutral-300 font-serif">"We have 20 funded seats. Do you have STEM students ready for that level of work, or should we look elsewhere?"</p>
+                                </div>
+                                <div class="p-4 bg-neutral-900 border border-neutral-800">
+                                    <span class="text-[10px] font-bold text-neutral-500 uppercase font-mono">To STEM Director</span>
+                                    <p class="mt-2 text-sm text-neutral-300 font-serif">"Take your students out of the 'Sandbox' and into the 'Factory'. I have the access paperwork."</p>
+                                </div>
+                                <div class="p-4 bg-neutral-900 border border-neutral-800">
+                                    <span class="text-[10px] font-bold text-neutral-500 uppercase font-mono">To Parent</span>
+                                    <p class="mt-2 text-sm text-neutral-300 font-serif">"Do you want your child to fear the Global Economy, or do you want them to lead it?"</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-8">
+                                <h3 class="text-lg font-bold text-white mb-4 font-sans">The Artifacts (Leave-Behinds)</h3>
+                                <div class="grid md:grid-cols-3 gap-4">
+                                    <div class="bg-neutral-900/40 p-4 border border-neutral-800">
+                                        <div class="text-blue-500 font-bold text-xs uppercase mb-1 font-mono">The Nomination Packet</div>
+                                        <p class="text-xs text-neutral-400 font-serif">"I don't need a decision today. I'll leave this packet. It outlines the student profile we are looking for."</p>
+                                    </div>
+                                    <div class="bg-neutral-900/40 p-4 border border-neutral-800">
+                                        <div class="text-blue-500 font-bold text-xs uppercase mb-1 font-mono">The Access Map</div>
+                                        <p class="text-xs text-neutral-400 font-serif">Visual proof of the Restricted Zones the Fellowship accesses.</p>
+                                    </div>
+                                    <div class="bg-neutral-900/40 p-4 border border-neutral-800">
+                                        <div class="text-blue-500 font-bold text-xs uppercase mb-1 font-mono">US Liability Shield</div>
+                                        <p class="text-xs text-neutral-400 font-serif">Draft indemnity clause proving our US entity absorbs the risk.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'objections') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Backup Assets", "Counter-Intel & Final Directives", 'ShieldAlert')}
+                        
+                        <div class="bg-neutral-900/50 p-6 md:p-8 rounded-sm mb-12 border border-neutral-800">
+                            <h3 class="text-xl font-bold text-white mb-6 font-sans">Counter-Intel: Political Risk</h3>
+                            <p class="text-neutral-400 mb-6 italic font-serif">Objection: "Is it ethical to go to China right now?"</p>
+                            ${ScriptBox("The Response", "That is exactly why we go. We don't go to study politics; we go to study Systems. If your student wants to solve Climate Change, they must understand how the world's largest manufacturing engine is tackling Net Zero. We are training Global Problem Solvers, and you can't solve global problems by ignoring half the globe.", 'neutral', "That is exactly why we go. We don't go to study politics; we go to study Systems. If your student wants to solve Climate Change, they must understand how the world's largest manufacturing engine is tackling Net Zero. We are training Global Problem Solvers, and you can't solve global problems by ignoring half the globe.")}
+                            <div class="mt-6 text-blue-500 font-bold text-lg text-center font-serif">
+                                "Do you want your graduates to fear the Global Economy, or do you want them to lead it?"
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div class="bg-emerald-950/10 border border-emerald-900/30 p-6 rounded-sm">
+                                <h4 class="text-emerald-500 font-black mb-4 uppercase tracking-widest text-xs font-mono">Directive: EXECUTE</h4>
+                                <ul class="space-y-3 text-sm text-neutral-400 font-serif">
+                                    <li class="flex gap-2">${getIcon('ChevronRight', 14, "text-emerald-500 mt-1")} Use "We" and "Us" regarding the industry.</li>
+                                    <li class="flex gap-2">${getIcon('ChevronRight', 14, "text-emerald-500 mt-1")} Frame as a solution to a curriculum gap.</li>
+                                    <li class="flex gap-2">${getIcon('ChevronRight', 14, "text-emerald-500 mt-1")} Ask them to define the Student Profile.</li>
+                                </ul>
+                            </div>
+                            <div class="bg-rose-950/10 border border-rose-900/30 p-6 rounded-sm">
+                                <h4 class="text-rose-500 font-black mb-4 uppercase tracking-widest text-xs font-mono">Directive: ABORT</h4>
+                                <ul class="space-y-3 text-sm text-neutral-400 font-serif">
+                                    <li class="flex gap-2">${getIcon('X', 14, "text-rose-500 mt-1")} Using "You" and "I" (Salesman vs Client).</li>
+                                    <li class="flex gap-2">${getIcon('X', 14, "text-rose-500 mt-1")} Framing as a "fun experience."</li>
+                                    <li class="flex gap-2">${getIcon('X', 14, "text-rose-500 mt-1")} Treating JESIE as a "generous host" (Propaganda risk).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'glossary') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Technical Appendix", "Industry Terminology & Definitions", 'BookOpen')}
+                        
+                        <div class="grid md:grid-cols-2 gap-6">
+                            ${Card("Industrial Logistics", "Operations", `
+                                <div class="space-y-4">
+                                    <div>
+                                        <h4 class="text-white font-bold text-sm font-sans">AGVs & AI Sorting</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">Automated Guided Vehicles (robots) that move materials without human drivers, coupled with AI that directs package routing based on real-time optimization. Seen at JD Logistics.</p>
+                                    </div>
+                                    <div class="pt-2 border-t border-neutral-800">
+                                        <h4 class="text-white font-bold text-sm font-sans">AIoT (Artificial Intelligence of Things)</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">The combination of AI technologies with IoT infrastructure, allowing connected devices to analyze data and make autonomous decisions. Core to Envision Group's strategy.</p>
+                                    </div>
+                                    <div class="pt-2 border-t border-neutral-800">
+                                        <h4 class="text-white font-bold text-sm font-sans">WEF Lighthouse Factories</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">Manufacturing facilities selected by the World Economic Forum as the world's most advanced, leading the adoption of Fourth Industrial Revolution (4IR) technologies. (e.g., Haier, Bosideng).</p>
+                                    </div>
+                                </div>
+                            `)}
+
+                            ${Card("Bio & Sustainability", "Science", `
+                                <div class="space-y-4">
+                                    <div>
+                                        <h4 class="text-white font-bold text-sm font-sans">Net Zero</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">A target of completely negating the amount of greenhouse gases produced by human activity, achieved by reducing emissions and implementing methods of absorbing carbon dioxide.</p>
+                                    </div>
+                                    <div class="pt-2 border-t border-neutral-800">
+                                        <h4 class="text-white font-bold text-sm font-sans">Global CDMO Open-Access</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">Contract Development and Manufacturing Organization. A platform (like WuXi Biologics) that provides development services to pharma companies on an open-access basis to accelerate drug discovery.</p>
+                                    </div>
+                                    <div class="pt-2 border-t border-neutral-800">
+                                        <h4 class="text-white font-bold text-sm font-sans">Molecular Biology</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">The branch of biology that deals with the structure and function of the macromolecules (e.g., proteins and nucleic acids) essential to life. Focus at Cold Spring Harbor.</p>
+                                    </div>
+                                </div>
+                            `)}
+
+                            ${Card("Corporate Strategy", "Business", `
+                                <div class="space-y-4">
+                                    <div>
+                                        <h4 class="text-white font-bold text-sm font-sans">MNC Innovation Hub</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">A research center established by a Multinational Corporation (like Bosch) to tailor global technologies for local markets and leverage local talent pools.</p>
+                                    </div>
+                                    <div class="pt-2 border-t border-neutral-800">
+                                        <h4 class="text-white font-bold text-sm font-sans">R&D (Research and Development) Labs</h4>
+                                        <p class="text-xs text-neutral-400 mt-1 font-serif">Facilities dedicated to the innovative activities undertaken by corporations or governments in developing new services or products, or improving existing ones.</p>
+                                    </div>
+                                </div>
+                            `)}
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'methodology') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        ${SectionHeader("Operational Psychology", "Why This Protocol Wins", 'GraduationCap')}
+                        
+                        <div class="grid md:grid-cols-2 gap-6 mb-12">
+                            ${Card("The Spam Filter", "Permission Marketing", `
+                                <div class="space-y-2">
+                                    <div class="text-xs text-neutral-500 font-mono uppercase">Theory: Dr. Robert Cialdini</div>
+                                    <p class="text-sm text-neutral-300 font-serif">
+                                        <strong class="text-white">The Problem:</strong> Educators are defensive. Sending a PDF immediately is "trespassing" on their attention.
+                                    </p>
+                                    <p class="text-sm text-neutral-300 font-serif mt-2">
+                                        <strong class="text-white">The Fix:</strong> Ask "Mind if I send the PDF?" first. This micro-commitment turns a victim of spam into a willing participant.
+                                    </p>
+                                </div>
+                            `)}
+
+                            ${Card("The Trojan Horse", "Boundary Objects", `
+                                <div class="space-y-2">
+                                    <div class="text-xs text-neutral-500 font-mono uppercase">Theory: Star & Griesemer</div>
+                                    <p class="text-sm text-neutral-300 font-serif">
+                                        <strong class="text-white">The Problem:</strong> A "Brochure" (Marketing Object) dies at the Director's desk because it looks like a vacation.
+                                    </p>
+                                    <p class="text-sm text-neutral-300 font-serif mt-2">
+                                        <strong class="text-white">The Fix:</strong> We send a "Field Briefing" (Academic Object). It looks like a curriculum document, allowing it to travel up to the Head of School as "work."
+                                    </p>
+                                </div>
+                            `)}
+
+                            ${Card("The Professor Frame", "The Challenger Sale", `
+                                <div class="space-y-2">
+                                    <div class="text-xs text-neutral-500 font-mono uppercase">Theory: Dixon & Adamson</div>
+                                    <p class="text-sm text-neutral-300 font-serif">
+                                        <strong class="text-white">The Problem:</strong> "Relationship Builders" fail in complex B2B. You don't need to be their friend; you need to be their expert.
+                                    </p>
+                                    <p class="text-sm text-neutral-300 font-serif mt-2">
+                                        <strong class="text-white">The Fix:</strong> Don't ask what they need. Teach them what they are missing (The Scale-Up Gap). Take control of the conversation.
+                                    </p>
+                                </div>
+                            `)}
+
+                            ${Card("The 5-Second Rule", "Cognitive Load", `
+                                <div class="space-y-2">
+                                    <div class="text-xs text-neutral-500 font-mono uppercase">Theory: John Sweller</div>
+                                    <p class="text-sm text-neutral-300 font-serif">
+                                        <strong class="text-white">The Problem:</strong> Teachers are tired. Videos require 100% attention and audio. They impose high cognitive load.
+                                    </p>
+                                    <p class="text-sm text-neutral-300 font-serif mt-2">
+                                        <strong class="text-white">The Fix:</strong> A text-based PDF table. It is scannable in 5 seconds. It respects their limited working memory.
+                                    </p>
+                                </div>
+                            `)}
+                        </div>
+
+                        <div class="border border-neutral-800 bg-neutral-900/40 p-6 rounded-sm">
+                            <h3 class="text-lg font-bold text-white mb-4 font-sans uppercase">Amateur vs. Pro</h3>
+                            <table class="w-full text-left">
+                                <thead class="bg-neutral-900/50 text-[10px] uppercase text-neutral-500 border-b border-neutral-800 font-mono">
+                                    <tr>
+                                        <th class="px-4 py-3 font-normal">Component</th>
+                                        <th class="px-4 py-3 font-normal text-rose-500">The Amateur Way</th>
+                                        <th class="px-4 py-3 font-normal text-emerald-500">The Pro Way</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-neutral-800 text-sm font-serif">
+                                    <tr>
+                                        <td class="px-4 py-3 text-neutral-400 font-mono">Outreach</td>
+                                        <td class="px-4 py-3 text-neutral-500">Long email with links/attachments.</td>
+                                        <td class="px-4 py-3 text-white">Short text-only email asking permission.</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-neutral-400 font-mono">Tone</td>
+                                        <td class="px-4 py-3 text-neutral-500">"I want to offer you..." (Sales)</td>
+                                        <td class="px-4 py-3 text-white">"We are allocating grants..." (Admin)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-neutral-400 font-mono">Asset</td>
+                                        <td class="px-4 py-3 text-neutral-500">Glossy Brochure with photos.</td>
+                                        <td class="px-4 py-3 text-white">"Field Briefing" (Text/Tables).</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-4 py-3 text-neutral-400 font-mono">Meeting</td>
+                                        <td class="px-4 py-3 text-neutral-500">"Let's chat about options."</td>
+                                        <td class="px-4 py-3 text-white">"Grant Allocation & Logistics."</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'checklist') {
+                mainContent = `
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-grid-pattern">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-end border-b border-neutral-800 pb-8 mb-10">
+                            <div>
+                                <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight font-sans">OPERATION <br/>SOUTH FLORIDA</h1>
+                                <p class="text-neutral-400 mt-2 text-lg font-light italic font-serif">Strategic Account Protocol (SAP) // Cycle 2026</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                            <div class="bg-neutral-900/40 border border-neutral-800 p-6 backdrop-blur-sm">
+                                <h3 class="text-[10px] text-neutral-500 uppercase mb-2 font-mono">Strategy</h3>
+                                <p class="text-2xl font-medium text-white font-sans">The Sniper Approach</p>
+                                <p class="text-sm text-neutral-400 mt-2 leading-relaxed font-serif">
+                                    Account-Based Marketing (ABM). Moving from shotgun volume to calculated interactions.
+                                </p>
+                            </div>
+                            <div class="bg-neutral-900/40 border border-neutral-800 p-6 backdrop-blur-sm">
+                                <h3 class="text-[10px] text-neutral-500 uppercase mb-2 font-mono">Volume</h3>
+                                <p class="text-2xl font-medium text-white font-sans">5 Accounts / Week</p>
+                                <p class="text-sm text-neutral-400 mt-2 leading-relaxed font-serif">
+                                    High focus. Multi-threaded penetration via the "Triad" method.
+                                </p>
+                            </div>
+                            <div class="bg-blue-900/10 border border-blue-500/30 p-6 backdrop-blur-sm">
+                                <h3 class="text-[10px] text-blue-300 uppercase mb-2 font-mono">Primary Objective</h3>
+                                <p class="text-2xl font-medium text-white font-sans">Grant Allocation Briefing</p>
+                                <p class="text-sm text-blue-100/70 mt-2 leading-relaxed font-serif">
+                                    Secure "Nominating Partner" status via Zoom.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mb-16">
+                            <h2 class="text-2xl font-semibold text-white mb-6 pl-4 border-l-4 border-blue-500 font-sans">EXECUTION PHASES</h2>
+                            
+                            <div class="space-y-4">
+                                <div class="flex flex-col md:flex-row group border border-neutral-800 hover:border-neutral-500 transition-colors bg-neutral-900/40 backdrop-blur-sm">
+                                    <div class="md:w-48 bg-neutral-900/50 p-6 border-b md:border-b-0 md:border-r border-neutral-800 flex flex-col justify-center">
+                                        <span class="text-[10px] text-neutral-500 mb-1 font-mono">MONDAY</span>
+                                        <span class="text-lg font-bold text-white font-sans">PHASE 1</span>
+                                        <span class="text-xs text-neutral-400 italic font-serif">Intel & Recon</span>
+                                    </div>
+                                    <div class="p-6 w-full">
+                                        <div class="grid md:grid-cols-2 gap-8">
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">1.1 MAP THE TRIAD</h4>
+                                                <div class="space-y-2">
+                                                    ${ChecklistItem("Target A: STEM Director (User)", null, "1.1-TargetA")}
+                                                    ${ChecklistItem("Target B: IB/Global Director (Strategist)", null, "1.1-TargetB")}
+                                                    ${ChecklistItem("Target C: Head of School (Signer)", null, "1.1-TargetC")}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">1.2 THE AUDIT</h4>
+                                                <p class="text-sm text-neutral-400 leading-relaxed font-serif">
+                                                    Identify their specific trip gap (e.g., "They go to Paris"). Use this intel in the opener to defeat the "bot filter."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col md:flex-row group border border-neutral-800 hover:border-neutral-500 transition-colors bg-neutral-900/40 backdrop-blur-sm">
+                                    <div class="md:w-48 bg-neutral-900/50 p-6 border-b md:border-b-0 md:border-r border-neutral-800 flex flex-col justify-center">
+                                        <span class="text-[10px] text-neutral-500 mb-1 font-mono">TUE - WED</span>
+                                        <span class="text-lg font-bold text-white font-sans">PHASE 2</span>
+                                        <span class="text-xs text-neutral-400 italic font-serif">Infiltration</span>
+                                    </div>
+                                    <div class="p-6 w-full">
+                                        <div class="grid md:grid-cols-2 gap-8">
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">2.1 STAGGERED DISPATCH</h4>
+                                                <div class="space-y-2">
+                                                    ${ChecklistItem("Send individual Permission emails", "Do NOT CC yet.", "2.1-PermEmail")}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">2.2 THE ASSUMED CONSENT</h4>
+                                                <div class="bg-black/30 border-l-2 border-emerald-500 p-3">
+                                                    <p class="text-xs text-neutral-300 italic font-serif">
+                                                        "Dr. [Principal], I’m looping you in because [STEM Director] asked to review the Field Brief."
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col md:flex-row group border border-neutral-800 hover:border-neutral-500 transition-colors bg-neutral-900/40 backdrop-blur-sm">
+                                    <div class="md:w-48 bg-neutral-900/50 p-6 border-b md:border-b-0 md:border-r border-neutral-800 flex flex-col justify-center">
+                                        <span class="text-[10px] text-neutral-500 mb-1 font-mono">THURSDAY</span>
+                                        <span class="text-lg font-bold text-white font-sans">PHASE 3</span>
+                                        <span class="text-xs text-neutral-400 italic font-serif">Deployment</span>
+                                    </div>
+                                    <div class="p-6 w-full">
+                                        <div class="grid md:grid-cols-2 gap-8">
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">3.1 THE ASSET VERIFICATION</h4>
+                                                <p class="text-sm text-neutral-400 leading-relaxed font-serif">
+                                                    Filename: <span class="text-white bg-neutral-800 px-1 font-mono">2026_Grant_Briefing_Official.pdf</span>. No glossy photos. Maps, Data, Risk Tables only.
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-xs text-blue-400 mb-3 font-mono">3.2 THE ADMIN NUDGE</h4>
+                                                <p class="text-sm text-neutral-400 leading-relaxed font-serif">
+                                                    Execute "Negative Reverse" if no reply. "Shall I release these seats?"
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            
+                            <div>
+                                <h3 class="text-xl font-medium text-white mb-4 font-sans">OPS CADENCE</h3>
+                                <div class="bg-neutral-900/40 border border-neutral-800 overflow-hidden backdrop-blur-sm">
+                                    <table class="w-full text-left">
+                                        <thead class="bg-neutral-900/50 text-[10px] uppercase text-neutral-500 border-b border-neutral-800 font-mono">
+                                            <tr>
+                                                <th class="px-4 py-3 font-normal">Day</th>
+                                                <th class="px-4 py-3 font-normal">Protocol</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-neutral-800 text-sm font-serif">
+                                            <tr>
+                                                <td class="px-4 py-3 text-blue-400 font-mono">MON</td>
+                                                <td class="px-4 py-3 text-neutral-300">Intel Mapping (Find the Gap)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-3 text-blue-400 font-mono">TUE</td>
+                                                <td class="px-4 py-3 text-neutral-300">Dispatch A (10-15 Emails)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-3 text-blue-400 font-mono">WED</td>
+                                                <td class="px-4 py-3 text-neutral-300">Fulfillment (Loop in Principal)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-3 text-blue-400 font-mono">THU</td>
+                                                <td class="px-4 py-3 text-neutral-300">The Nudge (Admin Chaser)</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="px-4 py-3 text-blue-400 font-mono">FRI</td>
+                                                <td class="px-4 py-3 text-neutral-300">Review & Close</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-xl font-medium text-white mb-4 font-sans">SUCCESS METRICS</h3>
+                                <div class="bg-neutral-900/40 border border-neutral-800 p-6 space-y-8 backdrop-blur-sm">
+                                    
+                                    <div>
+                                        <div class="flex justify-between items-baseline mb-2">
+                                            <span class="text-sm text-neutral-300 font-serif">Triad Penetration</span>
+                                            <span class="text-xs text-emerald-400 font-mono">{'>'} 40%</span>
+                                        </div>
+                                        <div class="w-full bg-neutral-800 h-1">
+                                            <div class="bg-blue-500 h-1" style="width: 40%;"></div>
+                                        </div>
+                                        <p class="text-[10px] text-neutral-500 mt-2 font-mono">REPLY FROM AT LEAST 1 CONTACT</p>
+                                    </div>
+
+                                    <div>
+                                        <div class="flex justify-between items-baseline mb-2">
+                                            <span class="text-sm text-neutral-300 font-serif">Asset Consumption</span>
+                                            <span class="text-xs text-emerald-400 font-mono">{'>'} 25%</span>
+                                        </div>
+                                        <div class="w-full bg-neutral-800 h-1">
+                                            <div class="bg-blue-500 h-1" style="width: 25%;"></div>
+                                        </div>
+                                        <p class="text-[10px] text-neutral-500 mt-2 font-mono">ACCEPTED THE PDF</p>
+                                    </div>
+
+                                    <div>
+                                        <div class="flex justify-between items-baseline mb-2">
+                                            <span class="text-sm text-neutral-300 font-serif">Meeting Conversion</span>
+                                            <span class="text-xs text-emerald-400 font-mono">3 / WEEK</span>
+                                        </div>
+                                        <div class="w-full bg-neutral-800 h-1">
+                                            <div class="bg-emerald-500 h-1" style="width: 60%;"></div>
+                                        </div>
+                                        <p class="text-[10px] text-neutral-500 mt-2 font-mono">BOOKED "GRANT ALLOCATION" ZOOM</p>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-12 pt-8 border-t border-neutral-800 text-center text-[10px] text-neutral-600 font-mono">
+                            SYSTEM GENERATED // SAP DASHBOARD v2.0
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Final HTML Structure
+            return `
+                ${toast ? `
+                    <div class="fixed top-4 right-4 z-[60] bg-neutral-900 border border-emerald-500/50 text-emerald-400 px-4 py-2 rounded shadow-2xl flex items-center gap-2 font-mono text-xs animate-in slide-in-from-top-2">
+                        ${getIcon('CheckCircle2', 14)}
+                        ${toast}
+                    </div>
+                ` : ''}
+
+                <div class="lg:hidden flex items-center justify-between p-4 bg-black border-b border-neutral-800 sticky top-0 z-50 backdrop-blur-md bg-opacity-80">
+                    <div class="font-bold text-sm tracking-[0.2em] text-white font-sans">FACE<span class="text-blue-600">.LAB</span></div>
+                    <button id="mobile-menu-button" class="text-neutral-400 hover:text-white transition-colors">
+                        ${mobileMenuOpen ? getIcon('X', 24) : getIcon('Menu', 24)}
+                    </button>
+                </div>
+
+                <div class="flex h-screen overflow-hidden">
+                    
+                    <nav id="sidebar" class="
+                        absolute lg:static z-40 inset-0 lg:w-72 bg-neutral-950 border-r border-neutral-900 flex flex-col
+                        transform transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1) lg:transform-none
+                        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+                    ">
+                        ${sidebarContent}
+                    </nav>
+
+                    <main class="flex-1 overflow-y-auto bg-black p-4 lg:p-12 scroll-smooth scrollbar-thin scrollbar-thumb-neutral-800">
+                        <div class="max-w-5xl mx-auto pb-20">
+                            ${mainContent}
+                        </div>
+                    </main>
+                </div>
+            `;
+        };
+
+        // --- Event Listener Attachment ---
+        const attachEventListeners = () => {
+            // 1. Navigation Clicks
+            document.querySelectorAll('.nav-item').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    if (id) {
+                        activeTab = id;
+                        mobileMenuOpen = false; // Close menu on selection
+                        render();
+                    }
+                });
+            });
+
+            // 2. Mobile Menu Toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', () => {
+                    mobileMenuOpen = !mobileMenuOpen;
+                    render();
+                });
+            }
+
+            // 3. Price Slider (Logistics Tab)
+            const priceSlider = document.getElementById('price-slider');
+            if (priceSlider) {
+                priceSlider.addEventListener('input', (e) => {
+                    const newPrice = parseInt(e.target.value);
+                    fellowshipPrice = newPrice;
+                    const subsidyPercent = getSubsidyPercent(newPrice);
+                    
+                    // Update display immediately (micro-update)
+                    document.getElementById('price-display').textContent = `$${newPrice.toLocaleString()}`;
+                    document.getElementById('subsidy-display').textContent = `~${subsidyPercent}% Subsidized`;
+                    document.getElementById('subsidy-script-display').textContent = `~${subsidyPercent}%`;
+                });
+                // Rerender on change event (macro-update if needed, but 'input' handles visual)
+                priceSlider.addEventListener('change', render); 
+            }
+
+            // 4. Copy Buttons
+            document.querySelectorAll('.copy-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const text = e.currentTarget.dataset.copyText;
+                    if (text) {
+                        handleCopy(text);
+                    }
+                });
+            });
+
+            // 5. Checklist Items
+            document.querySelectorAll('.checklist-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.itemId;
+                    if (id) {
+                        checklistState[id] = !checklistState[id];
+                        render();
+                    }
+                });
+            });
+        };
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            render();
+        });
+    </script>
+</body>
+</html>
